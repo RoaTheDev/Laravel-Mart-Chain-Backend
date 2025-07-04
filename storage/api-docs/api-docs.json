@@ -1,0 +1,126 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "FakeStore API Documentation",
+        "description": "Swagger documentation for FakeStore API",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/branch/lists": {
+            "get": {
+                "tags": [
+                    "Branch"
+                ],
+                "summary": "Get list of branch",
+                "operationId": "5c3b289773113cfe5233e00bf043b1fd",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    }
+                }
+            }
+        },
+        "/api/branch/create": {
+            "post": {
+                "tags": [
+                    "Branch"
+                ],
+                "summary": "Create a new branch",
+                "operationId": "fab238b34aa9799a27eca85eda3b4ec8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "location",
+                                    "contact_number"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Phnom Penh Branch"
+                                    },
+                                    "location": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Phnom Penh"
+                                    },
+                                    "contact_number": {
+                                        "type": "string",
+                                        "maxLength": 20,
+                                        "example": "012345678"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    }
+                }
+            }
+        },
+        "/api/branch/delete": {
+            "post": {
+                "tags": [
+                    "Branch"
+                ],
+                "summary": "Delete a branch by ID",
+                "operationId": "49e5060c9700e82eae2a3008497a80bc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Branch deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "status_code": {
+                                            "type": "integer",
+                                            "example": 200
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Branch",
+            "description": "Branch"
+        }
+    ]
+}
