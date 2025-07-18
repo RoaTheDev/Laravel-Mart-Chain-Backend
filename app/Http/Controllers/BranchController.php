@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\Validator;
  */
 class BranchController extends Controller
 {
-
     /**
      * @OA\Get(
      *     path="/api/branch/lists",
@@ -39,7 +38,6 @@ class BranchController extends Controller
             'status_code' => 200
         ]);
     }
-
     /**
      * @OA\Post(
      *     path="/api/branch/create",
@@ -89,7 +87,6 @@ class BranchController extends Controller
             'status_code' => 200
         ]);
     }
-
     function update(Request $request)
     {
         $branch = Branch::find($request->id);
@@ -105,8 +102,6 @@ class BranchController extends Controller
             'status_code' => 200
         ]);
     }
-
-
     /**
      * @OA\Post(
      *     path="/api/branch/delete",
