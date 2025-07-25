@@ -2,30 +2,38 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Branch;
+use App\Models\InvoiceItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class BranchController extends Controller
+class InvoiceItemController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['lists']]); // Allow unauthenticated access to lists
+        $this->middleware('auth:api');
     }
 
     /**
      * @OA\Get(
-     *     path="/branch/lists",
-     *     tags={"Branch"},
-     *     summary="Get list of branches",
-     *     description="Retrieve a paginated list of all branches, optionally filtered by search term",
+     *     path="/invoice-items",
+     *     tags={"InvoiceItem"},
+     *     summary="Get list of invoice items",
+     *     description="Retrieve a paginated list of all invoice items, optionally filtered by invoice_id or product_id",
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
-     *         name="search",
+     *         name="invoice_id",
      *         in="query",
-     *         description="Search term to filter branches by name or location",
+     *         description="Filter invoice items by invoice ID",
      *         required=false,
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="product_id",
+     *         in="query",
+     *         description="Filter invoice items by product ID",
+     *         required=false,
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="per_page",
@@ -42,7 +50,7 @@ class BranchController extends Controller
      *             @OA\Property(
      *                 property="data",
      *                 type="object",
-     *                 @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Branch")),
+     *                 @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/InvoiceItem")),
      *                 @OA\Property(property="current_page", type="integer", example=1),
      *                 @OA\Property(property="total", type="integer", example=100),
      *                 @OA\Property(property="per_page", type="integer", example=15)
@@ -52,26 +60,28 @@ class BranchController extends Controller
      *     )
      * )
      */
-    public function lists(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $query = Branch::query();
+        $query = InvoiceItem::query();
 
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%")
-                ->orWhere('location', 'like', "%{$search}%");
+        if ($request->has('invoice_id')) {
+            $query->where('invoice_id', $request->input('invoice_id'));
+        }
+
+        if ($request->has('product_id')) {
+            $query->where('product_id', $request->input('product_id'));
         }
 
         $perPage = $request->input('per_page', 15);
-        $branches = $query->paginate($perPage);
+        $invoiceItems = $query->paginate($perPage);
 
         return response()->json([
             'status' => 'success',
             'data' => [
-                'branches' => $branches->items(),
-                'current_page' => $branches->currentPage(),
-                'per_page' => $branches->perPage(),
-                'total' => $branches->total(),
+                'invoice_items' => $invoiceItems->items(),
+                'current_page' => $invoiceItems->currentPage(),
+                'per_page' => $invoiceItems->perPage(),
+                'total' => $invoiceItems->total(),
             ],
             'status_code' => 200
         ]);
@@ -79,10 +89,10 @@ class BranchController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/branch/{id}",
-     *     tags={"Branch"},
-     *     summary="Get a specific branch",
-     *     description="Retrieve a single branch by ID",
+     *     path="/invoice-items/{id}",
+     *     tags={"InvoiceItem"},
+     *     summary="Get a specific invoice item",
+     *     description="Retrieve a single invoice item by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="id",
@@ -95,16 +105,16 @@ class BranchController extends Controller
      *         description="Successful operation",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/InvoiceItem"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Invoice item not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Invoice item not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
      *         )
      *     ),
@@ -121,46 +131,47 @@ class BranchController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $branch = Branch::find($id);
+        $invoiceItem = InvoiceItem::find($id);
 
-        if (!$branch) {
+        if (!$invoiceItem) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Invoice item not found',
                 'status_code' => 404
             ], 404);
         }
 
         return response()->json([
             'status' => 'success',
-            'data' => $branch,
+            'data' => $invoiceItem,
             'status_code' => 200
         ]);
     }
 
     /**
      * @OA\Post(
-     *     path="/branch/create",
-     *     tags={"Branch"},
-     *     summary="Create a new branch",
-     *     description="Create a new branch with name, location, and contact number",
+     *     path="/invoice-items",
+     *     tags={"InvoiceItem"},
+     *     summary="Create a new invoice item",
+     *     description="Create a new invoice item with invoice ID, product ID, quantity, and price",
      *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name", "location", "contact_number"},
-     *             @OA\Property(property="name", type="string", maxLength=255, example="Phnom Penh Branch"),
-     *             @OA\Property(property="location", type="string", maxLength=255, example="Phnom Penh"),
-     *             @OA\Property(property="contact_number", type="string", maxLength=20, example="012345678")
+     *             required={"invoice_id", "product_id", "qty", "price"},
+     *             @OA\Property(property="invoice_id", type="integer", example=1),
+     *             @OA\Property(property="product_id", type="integer", example=1),
+     *             @OA\Property(property="qty", type="integer", example=2),
+     *             @OA\Property(property="price", type="number", format="float", example=499.99)
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
-     *         description="Branch created successfully",
+     *         description="Invoice item created successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch created successfully"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="message", type="string", example="Invoice item created successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/InvoiceItem"),
      *             @OA\Property(property="status_code", type="integer", example=201)
      *         )
      *     ),
@@ -184,12 +195,13 @@ class BranchController extends Controller
      *     )
      * )
      */
-    public function create(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
+            'invoice_id' => 'required|integer|exists:invoice,id',
+            'product_id' => 'required|integer|exists:product,id',
+            'qty' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -204,22 +216,22 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch = Branch::create($request->only('name', 'location', 'contact_number'));
+        $invoiceItem = InvoiceItem::create($request->only('invoice_id', 'product_id', 'qty', 'price'));
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch created successfully',
-            'data' => $branch,
+            'message' => 'Invoice item created successfully',
+            'data' => $invoiceItem,
             'status_code' => 201
         ], 201);
     }
 
     /**
      * @OA\Put(
-     *     path="/branch/{id}",
-     *     tags={"Branch"},
-     *     summary="Update a branch",
-     *     description="Update an existing branch by ID",
+     *     path="/invoice-items/{id}",
+     *     tags={"InvoiceItem"},
+     *     summary="Update an invoice item",
+     *     description="Update an existing invoice item by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="id",
@@ -230,28 +242,29 @@ class BranchController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name", "location", "contact_number"},
-     *             @OA\Property(property="name", type="string", maxLength=255, example="Phnom Penh Branch"),
-     *             @OA\Property(property="location", type="string", maxLength=255, example="Phnom Penh"),
-     *             @OA\Property(property="contact_number", type="string", maxLength=20, example="012345678")
+     *             required={"invoice_id", "product_id", "qty", "price"},
+     *             @OA\Property(property="invoice_id", type="integer", example=1),
+     *             @OA\Property(property="product_id", type="integer", example=1),
+     *             @OA\Property(property="qty", type="integer", example=2),
+     *             @OA\Property(property="price", type="number", format="float", example=499.99)
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Branch updated successfully",
+     *         description="Invoice item updated successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch updated successfully"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="message", type="string", example="Invoice item updated successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/InvoiceItem"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Invoice item not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Invoice item not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
      *         )
      *     ),
@@ -277,20 +290,21 @@ class BranchController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        $branch = Branch::find($id);
+        $invoiceItem = InvoiceItem::find($id);
 
-        if (!$branch) {
+        if (!$invoiceItem) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Invoice item not found',
                 'status_code' => 404
             ], 404);
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
+            'invoice_id' => 'required|integer|exists:invoice,id',
+            'product_id' => 'required|integer|exists:product,id',
+            'qty' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -305,22 +319,22 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch->update($request->only('name', 'location', 'contact_number'));
+        $invoiceItem->update($request->only('invoice_id', 'product_id', 'qty', 'price'));
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch updated successfully',
-            'data' => $branch,
+            'message' => 'Invoice item updated successfully',
+            'data' => $invoiceItem,
             'status_code' => 200
         ]);
     }
 
     /**
      * @OA\Delete(
-     *     path="/branch/{id}",
-     *     tags={"Branch"},
-     *     summary="Delete a branch",
-     *     description="Soft delete a branch by ID",
+     *     path="/invoice-items/{id}",
+     *     tags={"InvoiceItem"},
+     *     summary="Delete an invoice item",
+     *     description="Soft delete an invoice item by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="id",
@@ -330,19 +344,19 @@ class BranchController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Branch deleted successfully",
+     *         description="Invoice item deleted successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch deleted successfully"),
+     *             @OA\Property(property="message", type="string", example="Invoice item deleted successfully"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Invoice item not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Invoice item not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
      *         )
      *     ),
@@ -359,31 +373,31 @@ class BranchController extends Controller
      */
     public function delete($id): JsonResponse
     {
-        $branch = Branch::find($id);
+        $invoiceItem = InvoiceItem::find($id);
 
-        if (!$branch) {
+        if (!$invoiceItem) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Invoice item not found',
                 'status_code' => 404
             ], 404);
         }
 
-        $branch->delete();
+        $invoiceItem->delete();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch deleted successfully',
+            'message' => 'Invoice item deleted successfully',
             'status_code' => 200
         ]);
     }
 
     /**
      * @OA\Post(
-     *     path="/branch/restore",
-     *     tags={"Branch"},
-     *     summary="Restore a soft-deleted branch",
-     *     description="Restore a previously soft-deleted branch by ID",
+     *     path="/invoice-items/restore",
+     *     tags={"InvoiceItem"},
+     *     summary="Restore a soft-deleted invoice item",
+     *     description="Restore a previously soft-deleted invoice item by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -394,21 +408,30 @@ class BranchController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Branch restored successfully",
+     *         description="Invoice item restored successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch restored successfully"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="message", type="string", example="Invoice item restored successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/InvoiceItem"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Invoice item not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Invoice item not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="error"),
+     *             @OA\Property(property="errors", type="object"),
+     *             @OA\Property(property="status_code", type="integer", example=422)
      *         )
      *     ),
      *     @OA\Response(
@@ -440,22 +463,22 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch = Branch::onlyTrashed()->find($request->id);
+        $invoiceItem = InvoiceItem::onlyTrashed()->find($request->id);
 
-        if (!$branch) {
+        if (!$invoiceItem) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Invoice item not found',
                 'status_code' => 404
             ], 404);
         }
 
-        $branch->restore();
+        $invoiceItem->restore();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch restored successfully',
-            'data' => $branch,
+            'message' => 'Invoice item restored successfully',
+            'data' => $invoiceItem,
             'status_code' => 200
         ]);
     }

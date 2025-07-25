@@ -2,28 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Branch;
+use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class BranchController extends Controller
+class ProductController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['lists']]); // Allow unauthenticated access to lists
+        $this->middleware('auth:api', ['except' => ['index','show']]);
     }
 
     /**
      * @OA\Get(
-     *     path="/branch/lists",
-     *     tags={"Branch"},
-     *     summary="Get list of branches",
-     *     description="Retrieve a paginated list of all branches, optionally filtered by search term",
+     *     path="/products",
+     *     tags={"Product"},
+     *     summary="Get list of products",
+     *     description="Retrieve a paginated list of all products, optionally filtered by search term",
      *     @OA\Parameter(
      *         name="search",
      *         in="query",
-     *         description="Search term to filter branches by name or location",
+     *         description="Search term to filter products by name or description",
      *         required=false,
      *         @OA\Schema(type="string")
      *     ),
@@ -42,7 +43,7 @@ class BranchController extends Controller
      *             @OA\Property(
      *                 property="data",
      *                 type="object",
-     *                 @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Branch")),
+     *                 @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Product")),
      *                 @OA\Property(property="current_page", type="integer", example=1),
      *                 @OA\Property(property="total", type="integer", example=100),
      *                 @OA\Property(property="per_page", type="integer", example=15)
@@ -52,26 +53,26 @@ class BranchController extends Controller
      *     )
      * )
      */
-    public function lists(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $query = Branch::query();
+        $query = Product::query();
 
         if ($request->has('search')) {
             $search = $request->input('search');
             $query->where('name', 'like', "%{$search}%")
-                ->orWhere('location', 'like', "%{$search}%");
+                ->orWhere('description', 'like', "%{$search}%");
         }
 
         $perPage = $request->input('per_page', 15);
-        $branches = $query->paginate($perPage);
+        $products = $query->paginate($perPage);
 
         return response()->json([
             'status' => 'success',
             'data' => [
-                'branches' => $branches->items(),
-                'current_page' => $branches->currentPage(),
-                'per_page' => $branches->perPage(),
-                'total' => $branches->total(),
+                'products' => $products->items(),
+                'current_page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
             ],
             'status_code' => 200
         ]);
@@ -79,11 +80,10 @@ class BranchController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/branch/{id}",
-     *     tags={"Branch"},
-     *     summary="Get a specific branch",
-     *     description="Retrieve a single branch by ID",
-     *     security={{"bearerAuth": {}}},
+     *     path="/products/{id}",
+     *     tags={"Product"},
+     *     summary="Get a specific product",
+     *     description="Retrieve a single product by ID",
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -95,16 +95,16 @@ class BranchController extends Controller
      *         description="Successful operation",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Product"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Product not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Product not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
      *         )
      *     ),
@@ -121,46 +121,49 @@ class BranchController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $branch = Branch::find($id);
+        $product = Product::find($id);
 
-        if (!$branch) {
+        if (!$product) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Product not found',
                 'status_code' => 404
             ], 404);
         }
 
         return response()->json([
             'status' => 'success',
-            'data' => $branch,
+            'data' => $product,
             'status_code' => 200
         ]);
     }
 
     /**
      * @OA\Post(
-     *     path="/branch/create",
-     *     tags={"Branch"},
-     *     summary="Create a new branch",
-     *     description="Create a new branch with name, location, and contact number",
+     *     path="/products",
+     *     tags={"Product"},
+     *     summary="Create a new product",
+     *     description="Create a new product with name, cost, price, image, description, and category",
      *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name", "location", "contact_number"},
-     *             @OA\Property(property="name", type="string", maxLength=255, example="Phnom Penh Branch"),
-     *             @OA\Property(property="location", type="string", maxLength=255, example="Phnom Penh"),
-     *             @OA\Property(property="contact_number", type="string", maxLength=20, example="012345678")
+     *             required={"name", "cost", "price", "category_id"},
+     *             @OA\Property(property="name", type="string", maxLength=255, example="Laptop"),
+     *             @OA\Property(property="cost", type="number", format="float", example=500.00),
+     *             @OA\Property(property="price", type="number", format="float", example=699.99),
+     *             @OA\Property(property="image", type="string", nullable=true, example="https://example.com/images/laptop.jpg"),
+     *             @OA\Property(property="description", type="string", nullable=true, example="High-performance laptop"),
+     *             @OA\Property(property="category_id", type="integer", example=1)
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
-     *         description="Branch created successfully",
+     *         description="Product created successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch created successfully"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="message", type="string", example="Product created successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Product"),
      *             @OA\Property(property="status_code", type="integer", example=201)
      *         )
      *     ),
@@ -184,12 +187,15 @@ class BranchController extends Controller
      *     )
      * )
      */
-    public function create(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
+            'cost' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'image' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'category_id' => 'required|integer|exists:category,id',
         ]);
 
         if ($validator->fails()) {
@@ -204,22 +210,22 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch = Branch::create($request->only('name', 'location', 'contact_number'));
+        $product = Product::create($request->only('name', 'cost', 'price', 'image', 'description', 'category_id'));
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch created successfully',
-            'data' => $branch,
+            'message' => 'Product created successfully',
+            'data' => $product,
             'status_code' => 201
         ], 201);
     }
 
     /**
      * @OA\Put(
-     *     path="/branch/{id}",
-     *     tags={"Branch"},
-     *     summary="Update a branch",
-     *     description="Update an existing branch by ID",
+     *     path="/products/{id}",
+     *     tags={"Product"},
+     *     summary="Update a product",
+     *     description="Update an existing product by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="id",
@@ -230,28 +236,31 @@ class BranchController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name", "location", "contact_number"},
-     *             @OA\Property(property="name", type="string", maxLength=255, example="Phnom Penh Branch"),
-     *             @OA\Property(property="location", type="string", maxLength=255, example="Phnom Penh"),
-     *             @OA\Property(property="contact_number", type="string", maxLength=20, example="012345678")
+     *             required={"name", "cost", "price", "category_id"},
+     *             @OA\Property(property="name", type="string", maxLength=255, example="Laptop"),
+     *             @OA\Property(property="cost", type="number", format="float", example=500.00),
+     *             @OA\Property(property="price", type="number", format="float", example=699.99),
+     *             @OA\Property(property="image", type="string", nullable=true, example="https://example.com/images/laptop.jpg"),
+     *             @OA\Property(property="description", type="string", nullable=true, example="High-performance laptop"),
+     *             @OA\Property(property="category_id", type="integer", example=1)
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Branch updated successfully",
+     *         description="Product updated successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch updated successfully"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="message", type="string", example="Product updated successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Product"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Product not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Product not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
      *         )
      *     ),
@@ -277,20 +286,23 @@ class BranchController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        $branch = Branch::find($id);
+        $product = Product::find($id);
 
-        if (!$branch) {
+        if (!$product) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Product not found',
                 'status_code' => 404
             ], 404);
         }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
+            'cost' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'image' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'category_id' => 'required|integer|exists:category,id',
         ]);
 
         if ($validator->fails()) {
@@ -305,22 +317,22 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch->update($request->only('name', 'location', 'contact_number'));
+        $product->update($request->only('name', 'cost', 'price', 'image', 'description', 'category_id'));
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch updated successfully',
-            'data' => $branch,
+            'message' => 'Product updated successfully',
+            'data' => $product,
             'status_code' => 200
         ]);
     }
 
     /**
      * @OA\Delete(
-     *     path="/branch/{id}",
-     *     tags={"Branch"},
-     *     summary="Delete a branch",
-     *     description="Soft delete a branch by ID",
+     *     path="/products/{id}",
+     *     tags={"Product"},
+     *     summary="Delete a product",
+     *     description="Soft delete a product by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="id",
@@ -330,19 +342,19 @@ class BranchController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Branch deleted successfully",
+     *         description="Product deleted successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch deleted successfully"),
+     *             @OA\Property(property="message", type="string", example="Product deleted successfully"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Product not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Product not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
      *         )
      *     ),
@@ -359,31 +371,31 @@ class BranchController extends Controller
      */
     public function delete($id): JsonResponse
     {
-        $branch = Branch::find($id);
+        $product = Product::find($id);
 
-        if (!$branch) {
+        if (!$product) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Product not found',
                 'status_code' => 404
             ], 404);
         }
 
-        $branch->delete();
+        $product->delete();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch deleted successfully',
+            'message' => 'Product deleted successfully',
             'status_code' => 200
         ]);
     }
 
     /**
      * @OA\Post(
-     *     path="/branch/restore",
-     *     tags={"Branch"},
-     *     summary="Restore a soft-deleted branch",
-     *     description="Restore a previously soft-deleted branch by ID",
+     *     path="/products/restore",
+     *     tags={"Product"},
+     *     summary="Restore a soft-deleted product",
+     *     description="Restore a previously soft-deleted product by ID",
      *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -394,21 +406,30 @@ class BranchController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Branch restored successfully",
+     *         description="Product restored successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Branch restored successfully"),
-     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Branch"),
+     *             @OA\Property(property="message", type="string", example="Product restored successfully"),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/Product"),
      *             @OA\Property(property="status_code", type="integer", example=200)
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Branch not found",
+     *         description="Product not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="error", type="string", example="Branch not found"),
+     *             @OA\Property(property="error", type="string", example="Product not found"),
      *             @OA\Property(property="status_code", type="integer", example=404)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="error"),
+     *             @OA\Property(property="errors", type="object"),
+     *             @OA\Property(property="status_code", type="integer", example=422)
      *         )
      *     ),
      *     @OA\Response(
@@ -440,22 +461,22 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch = Branch::onlyTrashed()->find($request->id);
+        $product = Product::onlyTrashed()->find($request->id);
 
-        if (!$branch) {
+        if (!$product) {
             return response()->json([
                 'status' => 'error',
-                'error' => 'Branch not found',
+                'error' => 'Product not found',
                 'status_code' => 404
             ], 404);
         }
 
-        $branch->restore();
+        $product->restore();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Branch restored successfully',
-            'data' => $branch,
+            'message' => 'Product restored successfully',
+            'data' => $product,
             'status_code' => 200
         ]);
     }

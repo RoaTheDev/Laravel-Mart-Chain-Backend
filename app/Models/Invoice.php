@@ -7,42 +7,44 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Class Branch
+ * Class Invoice
  *
  * @OA\Schema(
- *     schema="Branch",
- *     title="Branch",
- *     description="Branch model",
+ *     schema="Invoice",
+ *     title="Invoice",
+ *     description="Invoice model",
  *     @OA\Property(property="id", type="integer", readOnly=true, example=1),
- *     @OA\Property(property="name", type="string", example="Phnom Penh Branch"),
- *     @OA\Property(property="location", type="string", example="Phnom Penh"),
- *     @OA\Property(property="contact_number", type="string", example="012345678"),
+ *     @OA\Property(property="user_id", type="integer", example=1),
+ *     @OA\Property(property="total", type="number", format="float", example=999.99),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2023-01-01T00:00:00Z"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2023-01-01T00:00:00Z"),
  *     @OA\Property(property="deleted_at", type="string", format="date-time", nullable=true, example=null)
  * )
  *
  * @property int $id
- * @property string $name
- * @property string $location
- * @property string $contact_number
+ * @property int $user_id
+ * @property float $total
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  *
  * @package App\Models
  */
-class Branch extends Model
+class Invoice extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'branch';
+    protected $table = 'invoice';
 
-    protected $fillable = [
-        'name',
-        'location',
-        'contact_number'
+    protected $casts = [
+        'user_id' => 'int',
+        'total' => 'float'
     ];
 
-    protected array $dates = ['deleted_at'];
+    protected $fillable = [
+        'user_id',
+        'total'
+    ];
+
+    protected $dates = ['deleted_at'];
 }
