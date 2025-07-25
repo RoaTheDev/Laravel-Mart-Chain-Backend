@@ -12,15 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('invoice_item', function (Blueprint $table) {
-            Schema::create('invoice_item', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('invoice_id')->constrained('invoice');
-                $table->foreignId('product_id')->constrained('product');
-                $table->integer('qty');
-                $table->float('price');
-                $table->timestamps();
-                $table->softDeletes();
-            });
+            $table->foreign(['invoice_id'])->references(['id'])->on('invoice')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['product_id'])->references(['id'])->on('product')->onUpdate('no action')->onDelete('no action');
         });
     }
 
@@ -30,7 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('invoice_item', function (Blueprint $table) {
-            //
+            $table->dropForeign('invoice_item_invoice_id_foreign');
+            $table->dropForeign('invoice_item_product_id_foreign');
         });
     }
 };

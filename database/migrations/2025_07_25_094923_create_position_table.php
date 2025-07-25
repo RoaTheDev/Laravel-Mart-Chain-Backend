@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('staff', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('position_id');
+        Schema::create('position', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('branch_id')->index('position_branch_id_foreign');
             $table->string('name');
-            $table->string('gender')->default('male');
-            $table->date('dob');
-            $table->text('pob');
-            $table->text('address');
-            $table->text('phone');
-            $table->text('nation_id_card');
+            $table->text('description')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('staff');
+        Schema::dropIfExists('position');
     }
 };

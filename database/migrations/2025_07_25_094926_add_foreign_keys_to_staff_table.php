@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('invoice', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->decimal('total', 10,2);
-            $table->timestamps();
-            $table->softDeletes();
+        Schema::table('staff', function (Blueprint $table) {
+            $table->foreign(['position_id'])->references(['id'])->on('position')->onUpdate('no action')->onDelete('no action');
         });
     }
 
@@ -25,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('invoice', function (Blueprint $table) {
-            $table->dropSoftDeletes();
+        Schema::table('staff', function (Blueprint $table) {
+            $table->dropForeign('staff_position_id_foreign');
         });
     }
 };

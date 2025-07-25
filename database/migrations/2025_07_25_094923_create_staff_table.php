@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('staff', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('position_id')->constrained('position');
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('position_id')->index('staff_position_id_foreign');
             $table->string('name');
             $table->string('gender');
             $table->date('dob');
@@ -31,8 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('staff', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('staff');
     }
 };

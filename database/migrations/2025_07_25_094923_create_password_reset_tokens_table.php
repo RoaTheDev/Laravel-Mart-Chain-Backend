@@ -11,13 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('invoice_item', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('invoice_id');
-            $table->unsignedBigInteger('product_id');
-            $table->integer('qty');
-            $table->decimal('price',10,2);
-            $table->timestamps();
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
         });
     }
 
@@ -26,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('invoice_item');
+        Schema::dropIfExists('password_reset_tokens');
     }
 };

@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('branch', function (Blueprint $table) {
-
-                $table->softDeletes();
+        Schema::table('product', function (Blueprint $table) {
+            $table->foreign(['category_id'])->references(['id'])->on('category')->onUpdate('no action')->onDelete('no action');
         });
     }
 
@@ -22,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('branch', function (Blueprint $table) {
-            $table->dropSoftDeletes();
+        Schema::table('product', function (Blueprint $table) {
+            $table->dropForeign('product_category_id_foreign');
         });
     }
 };
